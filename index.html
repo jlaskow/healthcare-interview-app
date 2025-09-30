@@ -73,6 +73,12 @@
         
         .status-dot.connected {
             background: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
         .chat-container {
@@ -135,45 +141,72 @@
             background: #6c757d;
         }
         
+        .live-transcription {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            min-height: 60px;
+            font-style: italic;
+            color: #856404;
+        }
+        
+        .live-transcription.active {
+            border-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+        
         .input-section {
             border-top: 1px solid #e9ecef;
             padding-top: 20px;
         }
         
-        .input-tabs {
+        .controls {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
         }
         
-        .tab-button {
-            padding: 10px 20px;
-            border: 2px solid #dee2e6;
-            background: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        
-        .tab-button.active {
-            background: #007bff;
+        .mic-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #28a745, #20c997);
             color: white;
-            border-color: #007bff;
+            font-size: 32px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
         }
         
-        .tab-content {
-            display: none;
+        .mic-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
         }
         
-        .tab-content.active {
-            display: block;
+        .mic-button.recording {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .mic-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
         .text-input-container {
+            flex: 1;
             display: flex;
-            gap: 15px;
-            align-items: flex-end;
+            gap: 10px;
         }
         
         #textInput {
@@ -215,55 +248,6 @@
             background: #6c757d;
             cursor: not-allowed;
             transform: none;
-        }
-        
-        .file-upload-container {
-            border: 2px dashed #dee2e6;
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.3s;
-        }
-        
-        .file-upload-container:hover {
-            border-color: #007bff;
-            background: #f8f9ff;
-        }
-        
-        .file-upload-container.dragover {
-            border-color: #007bff;
-            background: #f0f8ff;
-        }
-        
-        #audioFileInput {
-            display: none;
-        }
-        
-        .file-upload-label {
-            display: inline-block;
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
-            margin-bottom: 10px;
-        }
-        
-        .file-upload-label:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(40,167,69,0.3);
-        }
-        
-        .file-info {
-            margin-top: 15px;
-            padding: 10px;
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            border-radius: 8px;
-            display: none;
         }
         
         .loading {
@@ -318,28 +302,11 @@
             color: #0c5460;
         }
         
-        .finalize-section {
-            border-top: 1px solid #e9ecef;
-            padding-top: 20px;
-            margin-top: 20px;
+        .mic-instructions {
             text-align: center;
-        }
-        
-        .finalize-button {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #dc3545, #c82333);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .finalize-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(220,53,69,0.3);
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -347,14 +314,14 @@
     <div class="container">
         <div class="header">
             <h1>Healthcare Interview System</h1>
-            <p>Secure healthcare data collection with text and audio support</p>
+            <p>Real-time voice transcription with medical accuracy</p>
         </div>
         
         <div class="main-content">
             <div class="status-bar">
                 <div class="connection-status">
                     <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">Connecting to server...</span>
+                    <span id="statusText">Connecting to transcription server...</span>
                 </div>
                 <div>
                     <small>HIPAA Compliant | Secure Connection</small>
@@ -368,54 +335,43 @@
                 <div class="message bot-message">
                     <div class="message-avatar">AI</div>
                     <div class="message-content">
-                        Hello, I'm your healthcare interview assistant. I can process both text messages and audio files. Please describe your situation or upload an audio file to get started.
+                        Hello, I'm your healthcare interview assistant. You can speak to me using the microphone button, or type your responses below.
                     </div>
                 </div>
             </div>
             
+            <div class="live-transcription" id="liveTranscription">
+                Click the microphone to start speaking...
+            </div>
+            
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
-                Processing your request...
+                Processing...
             </div>
             
             <div class="input-section">
-                <div class="input-tabs">
-                    <button class="tab-button active" data-tab="text">Type Message</button>
-                    <button class="tab-button" data-tab="audio">Upload Audio</button>
-                </div>
-                
-                <div class="tab-content active" id="textTab">
+                <div class="controls">
+                    <button class="mic-button" id="micButton" title="Click to start/stop recording">
+                        🎤
+                    </button>
+                    
                     <div class="text-input-container">
                         <textarea 
                             id="textInput" 
-                            placeholder="Type your message here..." 
-                            rows="3"
+                            placeholder="Or type your message here..." 
+                            rows="2"
                             maxlength="1000"
                         ></textarea>
                         <button class="send-button" id="sendTextButton">Send</button>
                     </div>
                 </div>
-                
-                <div class="tab-content" id="audioTab">
-                    <div class="file-upload-container" id="fileUploadContainer">
-                        <label for="audioFileInput" class="file-upload-label">
-                            Choose Audio File
-                        </label>
-                        <input type="file" id="audioFileInput" accept="audio/*">
-                        <p>Or drag and drop an audio file here</p>
-                        <small>Supported formats: WAV, MP3, M4A, OGG</small>
-                        
-                        <div class="file-info" id="fileInfo">
-                            <strong>Selected file:</strong> <span id="fileName"></span>
-                        </div>
-                    </div>
+                <div class="mic-instructions">
+                    Click microphone to start speaking • Click again to stop
                 </div>
             </div>
             
-
-            
             <div class="privacy-notice">
-                <strong>Privacy Notice:</strong> This system is HIPAA compliant. All data is encrypted during transmission and storage. Audio files are processed securely and conversation logs are maintained for quality assurance purposes only.
+                <strong>Privacy Notice:</strong> This system uses Deepgram Nova-2 Medical for HIPAA-compliant transcription. All audio is processed securely and not stored permanently. Transcriptions are used only for this interview session.
             </div>
         </div>
     </div>
@@ -424,38 +380,35 @@
         class HealthcareInterviewApp {
             constructor() {
                 this.sessionId = 'session_' + Date.now();
-                this.serverUrl = 'https://h18p10df55.execute-api.us-east-2.amazonaws.com/prod'; // Replace with your EC2 IP
+                this.websocket = null;
+                this.mediaRecorder = null;
+                this.isRecording = false;
+                this.audioContext = null;
+                
+                // Update these URLs to match your setup
+                this.wsUrl = 'ws://3.13.118.153:8765';  // WebSocket server
+                this.apiUrl = 'https://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';  // API Gateway
                 
                 this.initializeElements();
                 this.setupEventListeners();
-                this.checkServerConnection();
+                this.connectWebSocket();
             }
             
             initializeElements() {
                 this.chatContainer = document.getElementById('chatContainer');
+                this.liveTranscription = document.getElementById('liveTranscription');
+                this.micButton = document.getElementById('micButton');
                 this.textInput = document.getElementById('textInput');
                 this.sendTextButton = document.getElementById('sendTextButton');
-                this.audioFileInput = document.getElementById('audioFileInput');
-                this.fileUploadContainer = document.getElementById('fileUploadContainer');
-                this.fileInfo = document.getElementById('fileInfo');
-                this.fileName = document.getElementById('fileName');
                 this.statusDot = document.getElementById('statusDot');
                 this.statusText = document.getElementById('statusText');
                 this.loading = document.getElementById('loading');
                 this.errorDiv = document.getElementById('errorDiv');
                 this.successDiv = document.getElementById('successDiv');
-
-                this.tabButtons = document.querySelectorAll('.tab-button');
-                this.tabContents = document.querySelectorAll('.tab-content');
             }
             
             setupEventListeners() {
-                // Tab switching
-                this.tabButtons.forEach(button => {
-                    button.addEventListener('click', () => this.switchTab(button.dataset.tab));
-                });
-                
-                // Text input
+                this.micButton.addEventListener('click', () => this.toggleRecording());
                 this.sendTextButton.addEventListener('click', () => this.sendTextMessage());
                 this.textInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -463,42 +416,155 @@
                         this.sendTextMessage();
                     }
                 });
-                
-                // File upload
-                this.audioFileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-                this.fileUploadContainer.addEventListener('dragover', (e) => this.handleDragOver(e));
-                this.fileUploadContainer.addEventListener('drop', (e) => this.handleFileDrop(e));
-                this.fileUploadContainer.addEventListener('dragenter', () => {
-                    this.fileUploadContainer.classList.add('dragover');
-                });
-                this.fileUploadContainer.addEventListener('dragleave', () => {
-                    this.fileUploadContainer.classList.remove('dragover');
-                });
-                
-                // Finalize interview
-                // Auto-finalization now handled by backend when user says "I'm done"
             }
             
-            switchTab(tabName) {
-                this.tabButtons.forEach(btn => btn.classList.remove('active'));
-                this.tabContents.forEach(content => content.classList.remove('active'));
-                
-                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-                document.getElementById(`${tabName}Tab`).classList.add('active');
-            }
-            
-            async checkServerConnection() {
+            connectWebSocket() {
                 try {
-                    const response = await fetch(`${this.serverUrl}/status`);
-                    if (response.ok) {
-                        this.updateStatus('connected', 'Connected to healthcare server');
-                    } else {
-                        this.updateStatus('disconnected', 'Server connection issue');
-                    }
+                    this.websocket = new WebSocket(this.wsUrl);
+                    
+                    this.websocket.onopen = () => {
+                        this.updateStatus('connected', 'Connected to transcription server');
+                        this.micButton.disabled = false;
+                    };
+                    
+                    this.websocket.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        this.handleWebSocketMessage(data);
+                    };
+                    
+                    this.websocket.onclose = () => {
+                        this.updateStatus('disconnected', 'Connection lost - reconnecting...');
+                        this.micButton.disabled = true;
+                        setTimeout(() => this.connectWebSocket(), 3000);
+                    };
+                    
+                    this.websocket.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.showError('Connection error. Please refresh the page.');
+                    };
+                    
                 } catch (error) {
-                    this.updateStatus('disconnected', 'Unable to connect to server');
-                    this.showError('Cannot connect to the healthcare server. Please check your connection.');
+                    console.error('WebSocket connection failed:', error);
+                    this.showError('Failed to connect to transcription server.');
                 }
+            }
+            
+            handleWebSocketMessage(data) {
+                switch (data.type) {
+                    case 'connected':
+                        console.log('WebSocket connected');
+                        break;
+                        
+                    case 'transcription':
+                        this.liveTranscription.textContent = data.text;
+                        if (data.is_final) {
+                            this.liveTranscription.classList.remove('active');
+                        }
+                        break;
+                        
+                    case 'bot_response':
+                        this.addMessage(data.text, false);
+                        this.setLoading(false);
+                        break;
+                        
+                    case 'interview_complete':
+                        this.showSuccess(`Interview completed! Case ID: ${data.case_id}`);
+                        this.disableInputs();
+                        break;
+                        
+                    case 'error':
+                        this.showError(data.message);
+                        this.setLoading(false);
+                        break;
+                }
+            }
+            
+            async toggleRecording() {
+                if (this.isRecording) {
+                    this.stopRecording();
+                } else {
+                    await this.startRecording();
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            sampleRate: 16000,
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        }
+                    });
+                    
+                    this.audioContext = new AudioContext({ sampleRate: 16000 });
+                    const source = this.audioContext.createMediaStreamSource(stream);
+                    const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    processor.onaudioprocess = (e) => {
+                        if (this.isRecording && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                            const audioData = e.inputBuffer.getChannelData(0);
+                            const int16Array = new Int16Array(audioData.length);
+                            
+                            for (let i = 0; i < audioData.length; i++) {
+                                int16Array[i] = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
+                            }
+                            
+                            const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(int16Array.buffer)));
+                            
+                            this.websocket.send(JSON.stringify({
+                                type: 'audio_data',
+                                audio: base64Audio
+                            }));
+                        }
+                    };
+                    
+                    source.connect(processor);
+                    processor.connect(this.audioContext.destination);
+                    
+                    this.mediaRecorder = { stream, processor, source };
+                    this.isRecording = true;
+                    this.micButton.classList.add('recording');
+                    this.micButton.textContent = '⏹️';
+                    this.liveTranscription.textContent = 'Listening...';
+                    this.liveTranscription.classList.add('active');
+                    
+                    // Tell server to start transcription
+                    this.websocket.send(JSON.stringify({ type: 'start_recording' }));
+                    
+                } catch (error) {
+                    console.error('Microphone error:', error);
+                    this.showError('Unable to access microphone. Please check permissions.');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder) {
+                    this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    this.mediaRecorder.processor.disconnect();
+                    this.mediaRecorder.source.disconnect();
+                    this.mediaRecorder = null;
+                }
+                
+                if (this.audioContext) {
+                    this.audioContext.close();
+                    this.audioContext = null;
+                }
+                
+                this.isRecording = false;
+                this.micButton.classList.remove('recording');
+                this.micButton.textContent = '🎤';
+                this.liveTranscription.classList.remove('active');
+                
+                // Tell server to stop transcription
+                if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                    this.websocket.send(JSON.stringify({ type: 'stop_recording' }));
+                }
+                
+                setTimeout(() => {
+                    this.liveTranscription.textContent = 'Click the microphone to start speaking...';
+                }, 2000);
             }
             
             async sendTextMessage() {
@@ -510,15 +576,14 @@
                 this.setLoading(true);
                 
                 try {
-                    const response = await fetch(`${this.serverUrl}/chat`, {
+                    const response = await fetch(`${this.apiUrl}/chat`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
                             message: message,
-                            session_id: this.sessionId,
-                            timestamp: new Date().toISOString()
+                            session_id: this.sessionId
                         })
                     });
                     
@@ -529,137 +594,14 @@
                     const data = await response.json();
                     this.addMessage(data.reply, false);
                     
-                    // Check if bot response indicates interview completion
-                    if (data.case_id && data.json_report) {
-                        this.showSuccess(`Interview completed successfully! Case ID: ${data.case_id}`);
+                    if (data.case_id) {
+                        this.showSuccess(`Interview completed! Case ID: ${data.case_id}`);
                         this.disableInputs();
                     }
                     
                 } catch (error) {
                     console.error('Error:', error);
                     this.showError('Failed to send message. Please try again.');
-                    this.addMessage('I apologize, but I\'m having trouble processing your request right now. Please try again in a moment.', false);
-                } finally {
-                    this.setLoading(false);
-                }
-            }
-            
-            handleFileSelect(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    this.processAudioFile(file);
-                }
-            }
-            
-            handleDragOver(event) {
-                event.preventDefault();
-            }
-            
-            handleFileDrop(event) {
-                event.preventDefault();
-                this.fileUploadContainer.classList.remove('dragover');
-                
-                const files = event.dataTransfer.files;
-                if (files.length > 0) {
-                    this.processAudioFile(files[0]);
-                }
-            }
-            
-            async processAudioFile(file) {
-                // Validate file type
-                if (!file.type.startsWith('audio/')) {
-                    this.showError('Please select a valid audio file.');
-                    return;
-                }
-                
-                // Show file info
-                this.fileName.textContent = file.name;
-                this.fileInfo.style.display = 'block';
-                
-                // Create form data
-                const formData = new FormData();
-                formData.append('audio', file);
-                formData.append('session_id', this.sessionId);
-                
-                this.setLoading(true);
-                this.addMessage(`[Audio file uploaded: ${file.name}]`, true);
-                
-                try {
-                    // Upload to your server for Whisper processing
-                    const response = await fetch(`${this.serverUrl}/upload-audio`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`Upload failed: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    // Show transcription if available
-                    if (data.transcription) {
-                        this.addMessage(`Transcription: "${data.transcription}"`, false);
-                    }
-                    
-                    // Show bot response
-                    if (data.reply) {
-                        this.addMessage(data.reply, false);
-                    }
-                    
-                    this.showSuccess('Audio file processed successfully!');
-                    
-                } catch (error) {
-                    console.error('Audio upload error:', error);
-                    this.showError('Failed to process audio file. Please try again.');
-                    this.addMessage('I apologize, but I had trouble processing your audio file. Please try uploading it again or type your message instead.', false);
-                } finally {
-                    this.setLoading(false);
-                    // Reset file input
-                    this.audioFileInput.value = '';
-                    this.fileInfo.style.display = 'none';
-                }
-            }
-            
-            async finalizeInterview() {
-                if (!confirm('Are you sure you want to complete this interview? This will generate the final report and end the session.')) {
-                    return;
-                }
-                
-                this.setLoading(true);
-                
-                try {
-                    const response = await fetch(`${this.serverUrl}/finalize`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            session_id: this.sessionId
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`Finalization failed: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    this.addMessage('Interview completed! Final report generated.', false);
-                    this.addMessage(`Case ID: ${data.case_id}`, false);
-                    this.addMessage(`Report saved to: ${data.s3_location}`, false);
-                    
-                    this.showSuccess(`Interview completed successfully! Case ID: ${data.case_id}`);
-                    
-                    // Disable further input
-                    this.finalizeButton.disabled = true;
-                    this.sendTextButton.disabled = true;
-                    this.textInput.disabled = true;
-                    this.audioFileInput.disabled = true;
-                    
-                } catch (error) {
-                    console.error('Finalization error:', error);
-                    this.showError('Failed to finalize interview. Please try again.');
                 } finally {
                     this.setLoading(false);
                 }
@@ -686,9 +628,6 @@
             
             setLoading(show) {
                 this.loading.style.display = show ? 'block' : 'none';
-                this.sendTextButton.disabled = show;
-                this.textInput.disabled = show;
-                this.audioFileInput.disabled = show;
             }
             
             updateStatus(status, text) {
@@ -705,18 +644,23 @@
                 }, 5000);
             }
             
+            showSuccess(message) {
+                this.successDiv.textContent = message;
+                this.successDiv.style.display = 'block';
+                this.errorDiv.style.display = 'none';
+            }
+            
             disableInputs() {
+                this.micButton.disabled = true;
                 this.sendTextButton.disabled = true;
                 this.textInput.disabled = true;
-                this.audioFileInput.disabled = true;
-                this.textInput.placeholder = "Interview completed - thank you for your responses";
+                this.textInput.placeholder = "Interview completed - thank you";
             }
         }
         
-        // Initialize the application
         document.addEventListener('DOMContentLoaded', () => {
             new HealthcareInterviewApp();
         });
     </script>
 </body>
-</html> 
+</html>
