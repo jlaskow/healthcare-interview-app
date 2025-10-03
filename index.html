@@ -73,12 +73,6 @@
         
         .status-dot.connected {
             background: #28a745;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
         }
         
         .chat-container {
@@ -141,72 +135,45 @@
             background: #6c757d;
         }
         
-        .live-transcription {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            min-height: 60px;
-            font-style: italic;
-            color: #856404;
-        }
-        
-        .live-transcription.active {
-            border-color: #28a745;
-            background: #d4edda;
-            color: #155724;
-        }
-        
         .input-section {
             border-top: 1px solid #e9ecef;
             padding-top: 20px;
         }
         
-        .controls {
+        .input-tabs {
             display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
         }
         
-        .mic-button {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            font-size: 32px;
+        .tab-button {
+            padding: 10px 20px;
+            border: 2px solid #dee2e6;
+            background: white;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            font-size: 16px;
+            transition: all 0.3s;
         }
         
-        .mic-button:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+        .tab-button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
         }
         
-        .mic-button.recording {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-            animation: pulse 1.5s infinite;
+        .tab-content {
+            display: none;
         }
         
-        .mic-button:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+        .tab-content.active {
+            display: block;
         }
         
         .text-input-container {
-            flex: 1;
             display: flex;
-            gap: 10px;
+            gap: 15px;
+            align-items: flex-end;
         }
         
         #textInput {
@@ -248,6 +215,59 @@
             background: #6c757d;
             cursor: not-allowed;
             transform: none;
+        }
+        
+        .audio-recording-container {
+            text-align: center;
+        }
+        
+        .record-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            font-size: 48px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .record-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 8px 24px rgba(40, 167, 69, 0.4);
+        }
+        
+        .record-button.recording {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .record-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .recording-status {
+            margin: 15px 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .recording-status.active {
+            color: #dc3545;
+            font-weight: 600;
         }
         
         .loading {
@@ -301,27 +321,20 @@
             font-size: 14px;
             color: #0c5460;
         }
-        
-        .mic-instructions {
-            text-align: center;
-            color: #6c757d;
-            font-size: 14px;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>Healthcare Interview System</h1>
-            <p>Real-time voice transcription with medical accuracy</p>
+            <p>Voice and text interview with secure transcription</p>
         </div>
         
         <div class="main-content">
             <div class="status-bar">
                 <div class="connection-status">
                     <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">Connecting to transcription server...</span>
+                    <span id="statusText">Connecting to server...</span>
                 </div>
                 <div>
                     <small>HIPAA Compliant | Secure Connection</small>
@@ -335,43 +348,48 @@
                 <div class="message bot-message">
                     <div class="message-avatar">AI</div>
                     <div class="message-content">
-                        Hello, I'm your healthcare interview assistant. You can speak to me using the microphone button, or type your responses below.
+                        Hello, I'm your healthcare interview assistant. You can record audio or type your responses below.
                     </div>
                 </div>
             </div>
             
-            <div class="live-transcription" id="liveTranscription">
-                Click the microphone to start speaking...
-            </div>
-            
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
-                Processing...
+                Processing your audio...
             </div>
             
             <div class="input-section">
-                <div class="controls">
-                    <button class="mic-button" id="micButton" title="Click to start/stop recording">
-                        🎤
-                    </button>
-                    
+                <div class="input-tabs">
+                    <button class="tab-button active" data-tab="text">Type Message</button>
+                    <button class="tab-button" data-tab="audio">Record Audio</button>
+                </div>
+                
+                <div class="tab-content active" id="textTab">
                     <div class="text-input-container">
                         <textarea 
                             id="textInput" 
-                            placeholder="Or type your message here..." 
-                            rows="2"
+                            placeholder="Type your message here..." 
+                            rows="3"
                             maxlength="1000"
                         ></textarea>
                         <button class="send-button" id="sendTextButton">Send</button>
                     </div>
                 </div>
-                <div class="mic-instructions">
-                    Click microphone to start speaking • Click again to stop
+                
+                <div class="tab-content" id="audioTab">
+                    <div class="audio-recording-container">
+                        <button class="record-button" id="recordButton">
+                            🎤
+                        </button>
+                        <div class="recording-status" id="recordingStatus">
+                            Click microphone to start recording
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <div class="privacy-notice">
-                <strong>Privacy Notice:</strong> This system uses Deepgram Nova-2 Medical for HIPAA-compliant transcription. All audio is processed securely and not stored permanently. Transcriptions are used only for this interview session.
+                <strong>Privacy Notice:</strong> This system is HIPAA compliant. Audio recordings are transcribed securely using Whisper AI and are not stored permanently. All communications are encrypted.
             </div>
         </div>
     </div>
@@ -380,35 +398,40 @@
         class HealthcareInterviewApp {
             constructor() {
                 this.sessionId = 'session_' + Date.now();
-                this.websocket = null;
                 this.mediaRecorder = null;
+                this.audioChunks = [];
                 this.isRecording = false;
-                this.audioContext = null;
                 
-                // Update these URLs to match your setup
-                this.wsUrl = 'wss://3.13.118.153:8765';  // WebSocket server
-                this.apiUrl = 'https://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';  // API Gateway
+                // API Gateway endpoint
+                this.apiUrl = 'https://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';
                 
                 this.initializeElements();
                 this.setupEventListeners();
-                this.connectWebSocket();
+                this.checkServerConnection();
             }
             
             initializeElements() {
                 this.chatContainer = document.getElementById('chatContainer');
-                this.liveTranscription = document.getElementById('liveTranscription');
-                this.micButton = document.getElementById('micButton');
                 this.textInput = document.getElementById('textInput');
                 this.sendTextButton = document.getElementById('sendTextButton');
+                this.recordButton = document.getElementById('recordButton');
+                this.recordingStatus = document.getElementById('recordingStatus');
                 this.statusDot = document.getElementById('statusDot');
                 this.statusText = document.getElementById('statusText');
                 this.loading = document.getElementById('loading');
                 this.errorDiv = document.getElementById('errorDiv');
                 this.successDiv = document.getElementById('successDiv');
+                this.tabButtons = document.querySelectorAll('.tab-button');
+                this.tabContents = document.querySelectorAll('.tab-content');
             }
             
             setupEventListeners() {
-                this.micButton.addEventListener('click', () => this.toggleRecording());
+                // Tab switching
+                this.tabButtons.forEach(button => {
+                    button.addEventListener('click', () => this.switchTab(button.dataset.tab));
+                });
+                
+                // Text input
                 this.sendTextButton.addEventListener('click', () => this.sendTextMessage());
                 this.textInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -416,155 +439,31 @@
                         this.sendTextMessage();
                     }
                 });
+                
+                // Audio recording
+                this.recordButton.addEventListener('click', () => this.toggleRecording());
             }
             
-            connectWebSocket() {
+            switchTab(tabName) {
+                this.tabButtons.forEach(btn => btn.classList.remove('active'));
+                this.tabContents.forEach(content => content.classList.remove('active'));
+                
+                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+                document.getElementById(`${tabName}Tab`).classList.add('active');
+            }
+            
+            async checkServerConnection() {
                 try {
-                    this.websocket = new WebSocket(this.wsUrl);
-                    
-                    this.websocket.onopen = () => {
-                        this.updateStatus('connected', 'Connected to transcription server');
-                        this.micButton.disabled = false;
-                    };
-                    
-                    this.websocket.onmessage = (event) => {
-                        const data = JSON.parse(event.data);
-                        this.handleWebSocketMessage(data);
-                    };
-                    
-                    this.websocket.onclose = () => {
-                        this.updateStatus('disconnected', 'Connection lost - reconnecting...');
-                        this.micButton.disabled = true;
-                        setTimeout(() => this.connectWebSocket(), 3000);
-                    };
-                    
-                    this.websocket.onerror = (error) => {
-                        console.error('WebSocket error:', error);
-                        this.showError('Connection error. Please refresh the page.');
-                    };
-                    
+                    const response = await fetch(`${this.apiUrl}/status`);
+                    if (response.ok) {
+                        this.updateStatus('connected', 'Connected to server');
+                    } else {
+                        this.updateStatus('disconnected', 'Server connection issue');
+                    }
                 } catch (error) {
-                    console.error('WebSocket connection failed:', error);
-                    this.showError('Failed to connect to transcription server.');
+                    this.updateStatus('disconnected', 'Unable to connect to server');
+                    this.showError('Cannot connect to server. Please check your connection.');
                 }
-            }
-            
-            handleWebSocketMessage(data) {
-                switch (data.type) {
-                    case 'connected':
-                        console.log('WebSocket connected');
-                        break;
-                        
-                    case 'transcription':
-                        this.liveTranscription.textContent = data.text;
-                        if (data.is_final) {
-                            this.liveTranscription.classList.remove('active');
-                        }
-                        break;
-                        
-                    case 'bot_response':
-                        this.addMessage(data.text, false);
-                        this.setLoading(false);
-                        break;
-                        
-                    case 'interview_complete':
-                        this.showSuccess(`Interview completed! Case ID: ${data.case_id}`);
-                        this.disableInputs();
-                        break;
-                        
-                    case 'error':
-                        this.showError(data.message);
-                        this.setLoading(false);
-                        break;
-                }
-            }
-            
-            async toggleRecording() {
-                if (this.isRecording) {
-                    this.stopRecording();
-                } else {
-                    await this.startRecording();
-                }
-            }
-            
-            async startRecording() {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        audio: {
-                            sampleRate: 16000,
-                            channelCount: 1,
-                            echoCancellation: true,
-                            noiseSuppression: true
-                        }
-                    });
-                    
-                    this.audioContext = new AudioContext({ sampleRate: 16000 });
-                    const source = this.audioContext.createMediaStreamSource(stream);
-                    const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-                    
-                    processor.onaudioprocess = (e) => {
-                        if (this.isRecording && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-                            const audioData = e.inputBuffer.getChannelData(0);
-                            const int16Array = new Int16Array(audioData.length);
-                            
-                            for (let i = 0; i < audioData.length; i++) {
-                                int16Array[i] = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
-                            }
-                            
-                            const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(int16Array.buffer)));
-                            
-                            this.websocket.send(JSON.stringify({
-                                type: 'audio_data',
-                                audio: base64Audio
-                            }));
-                        }
-                    };
-                    
-                    source.connect(processor);
-                    processor.connect(this.audioContext.destination);
-                    
-                    this.mediaRecorder = { stream, processor, source };
-                    this.isRecording = true;
-                    this.micButton.classList.add('recording');
-                    this.micButton.textContent = '⏹️';
-                    this.liveTranscription.textContent = 'Listening...';
-                    this.liveTranscription.classList.add('active');
-                    
-                    // Tell server to start transcription
-                    this.websocket.send(JSON.stringify({ type: 'start_recording' }));
-                    
-                } catch (error) {
-                    console.error('Microphone error:', error);
-                    this.showError('Unable to access microphone. Please check permissions.');
-                }
-            }
-            
-            stopRecording() {
-                if (this.mediaRecorder) {
-                    this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                    this.mediaRecorder.processor.disconnect();
-                    this.mediaRecorder.source.disconnect();
-                    this.mediaRecorder = null;
-                }
-                
-                if (this.audioContext) {
-                    this.audioContext.close();
-                    this.audioContext = null;
-                }
-                
-                this.isRecording = false;
-                this.micButton.classList.remove('recording');
-                this.micButton.textContent = '🎤';
-                this.liveTranscription.classList.remove('active');
-                
-                // Tell server to stop transcription
-                if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-                    this.websocket.send(JSON.stringify({ type: 'stop_recording' }));
-                }
-                
-                setTimeout(() => {
-                    this.liveTranscription.textContent = 'Click the microphone to start speaking...';
-                }, 2000);
             }
             
             async sendTextMessage() {
@@ -573,7 +472,7 @@
                 
                 this.addMessage(message, true);
                 this.textInput.value = '';
-                this.setLoading(true);
+                this.setLoading(true, 'Processing...');
                 
                 try {
                     const response = await fetch(`${this.apiUrl}/chat`, {
@@ -607,6 +506,98 @@
                 }
             }
             
+            async toggleRecording() {
+                if (this.isRecording) {
+                    this.stopRecording();
+                } else {
+                    await this.startRecording();
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        this.audioChunks.push(event.data);
+                    };
+                    
+                    this.mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        await this.uploadAudio(audioBlob);
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.recordButton.classList.add('recording');
+                    this.recordButton.textContent = '⏹️';
+                    this.recordingStatus.textContent = 'Recording... Click to stop';
+                    this.recordingStatus.classList.add('active');
+                    
+                } catch (error) {
+                    console.error('Microphone error:', error);
+                    this.showError('Unable to access microphone. Please check permissions.');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.recordButton.classList.remove('recording');
+                    this.recordButton.textContent = '🎤';
+                    this.recordingStatus.textContent = 'Processing...';
+                    this.recordingStatus.classList.remove('active');
+                }
+            }
+            
+            async uploadAudio(audioBlob) {
+                this.setLoading(true, 'Transcribing audio...');
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'recording.wav');
+                    formData.append('session_id', this.sessionId);
+                    
+                    const response = await fetch(`${this.apiUrl}/upload-audio`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Upload failed: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.transcription) {
+                        this.addMessage(`[Audio] ${data.transcription}`, true);
+                    }
+                    
+                    if (data.reply) {
+                        this.addMessage(data.reply, false);
+                    }
+                    
+                    if (data.case_id) {
+                        this.showSuccess(`Interview completed! Case ID: ${data.case_id}`);
+                        this.disableInputs();
+                    }
+                    
+                    this.recordingStatus.textContent = 'Click microphone to start recording';
+                    
+                } catch (error) {
+                    console.error('Audio upload error:', error);
+                    this.showError('Failed to process audio. Please try again.');
+                    this.recordingStatus.textContent = 'Click microphone to start recording';
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+            
             addMessage(message, isUser) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
@@ -626,8 +617,14 @@
                 this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
             }
             
-            setLoading(show) {
+            setLoading(show, message = 'Processing...') {
                 this.loading.style.display = show ? 'block' : 'none';
+                if (show) {
+                    this.loading.querySelector('div:last-child').textContent = message;
+                }
+                this.sendTextButton.disabled = show;
+                this.textInput.disabled = show;
+                this.recordButton.disabled = show;
             }
             
             updateStatus(status, text) {
@@ -651,9 +648,9 @@
             }
             
             disableInputs() {
-                this.micButton.disabled = true;
                 this.sendTextButton.disabled = true;
                 this.textInput.disabled = true;
+                this.recordButton.disabled = true;
                 this.textInput.placeholder = "Interview completed - thank you";
             }
         }
