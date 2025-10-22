@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Healthcare Interview System</title>
+    <title>Healthcare Interview System - WebSocket</title>
     <style>
         * {
             box-sizing: border-box;
@@ -69,10 +69,16 @@
             height: 12px;
             border-radius: 50%;
             background: #dc3545;
+            animation: pulse 2s infinite;
         }
         
         .status-dot.connected {
             background: #28a745;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
         .chat-container {
@@ -114,6 +120,13 @@
             color: #333;
         }
         
+        .transcript-message .message-content {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            font-style: italic;
+        }
+        
         .message-avatar {
             width: 40px;
             height: 40px;
@@ -133,6 +146,10 @@
         
         .bot-message .message-avatar {
             background: #6c757d;
+        }
+        
+        .transcript-message .message-avatar {
+            background: #ffc107;
         }
         
         .input-section {
@@ -240,17 +257,7 @@
         
         .record-button:hover:not(:disabled) {
             transform: scale(1.05);
-            box-shadow: 0 8px 24px rgba(40, 167, 69, 0.4);
-        }
-        
-        .record-button.recording {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
         }
         
         .record-button:disabled {
@@ -259,10 +266,20 @@
             transform: none;
         }
         
+        .record-button.recording {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            animation: recordPulse 1.5s infinite;
+        }
+        
+        @keyframes recordPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
         .recording-status {
-            margin: 15px 0;
-            color: #6c757d;
             font-size: 14px;
+            color: #6c757d;
+            margin-top: 10px;
         }
         
         .recording-status.active {
@@ -270,19 +287,37 @@
             font-weight: 600;
         }
         
-        .loading {
-            text-align: center;
-            color: #6c757d;
-            margin: 20px 0;
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
             display: none;
         }
         
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
         .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #007bff;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
             margin: 0 auto 10px;
         }
@@ -291,105 +326,60 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        .error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: none;
-        }
-        
-        .success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: none;
-        }
-        
-        .privacy-notice {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #0c5460;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Healthcare Interview System</h1>
-            <p>Voice and text interview with secure transcription</p>
+            <h1>🏥 Healthcare Interview System</h1>
+            <p>Real-Time Voice & Text Interview with WebSocket</p>
         </div>
         
         <div class="main-content">
             <div class="status-bar">
                 <div class="connection-status">
                     <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">Connecting to server...</span>
+                    <span id="statusText">Connecting...</span>
                 </div>
                 <div>
-                    <small>HIPAA Compliant | Secure Connection</small>
+                    <span style="font-size: 12px; color: #6c757d;">Session: <span id="sessionId"></span></span>
                 </div>
             </div>
             
-            <div class="error" id="errorDiv"></div>
-            <div class="success" id="successDiv"></div>
+            <div class="alert alert-error" id="errorAlert"></div>
+            <div class="alert alert-success" id="successAlert"></div>
             
             <div class="chat-container" id="chatContainer">
                 <div class="message bot-message">
                     <div class="message-avatar">AI</div>
-                    <div class="message-content">
-                        Hello, I'm your healthcare interview assistant. You can record audio or type your responses below.
-                    </div>
+                    <div class="message-content">Welcome! Connecting to the interview system...</div>
                 </div>
             </div>
             
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
-                Processing your audio...
+                <div>Processing...</div>
             </div>
             
             <div class="input-section">
                 <div class="input-tabs">
-                    <button class="tab-button active" data-tab="text">Type Message</button>
-                    <button class="tab-button" data-tab="audio">Record Audio</button>
+                    <button class="tab-button active" data-tab="text">💬 Text</button>
+                    <button class="tab-button" data-tab="audio">🎤 Voice (Real-Time)</button>
                 </div>
                 
-                <div class="tab-content active" id="textTab">
+                <div id="textTab" class="tab-content active">
                     <div class="text-input-container">
-                        <textarea 
-                            id="textInput" 
-                            placeholder="Type your message here..." 
-                            rows="3"
-                            maxlength="1000"
-                        ></textarea>
+                        <textarea id="textInput" placeholder="Type your message..."></textarea>
                         <button class="send-button" id="sendTextButton">Send</button>
                     </div>
                 </div>
                 
-                <div class="tab-content" id="audioTab">
+                <div id="audioTab" class="tab-content">
                     <div class="audio-recording-container">
-                        <button class="record-button" id="recordButton">
-                            🎤
-                        </button>
-                        <div class="recording-status" id="recordingStatus">
-                            Click microphone to start recording
-                        </div>
+                        <button class="record-button" id="recordButton">🎤</button>
+                        <div class="recording-status" id="recordingStatus">Click microphone to start real-time transcription</div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="privacy-notice">
-                <strong>Privacy Notice:</strong> This system is HIPAA compliant. Audio recordings are transcribed securely using Whisper AI and are not stored permanently. All communications are encrypted.
             </div>
         </div>
     </div>
@@ -397,32 +387,116 @@
     <script>
         class HealthcareInterviewApp {
             constructor() {
-                this.sessionId = 'session_' + Date.now();
-                this.mediaRecorder = null;
-                this.audioChunks = [];
+                // CHANGE THESE TO YOUR SERVER IPs
+                this.wsUrl = 'wss://3.13.118.153:8766';  // WebSocket server
+                this.apiUrl = 'http://3.13.118.153:5000';  // Flask API for text messages
+                
+                this.sessionId = 'ws_' + Date.now();
+                this.ws = null;
                 this.isRecording = false;
+                this.mediaRecorder = null;
+                this.audioContext = null;
+                this.processor = null;
+                this.currentTranscript = '';
                 
-                // API Gateway endpoint
-                this.apiUrl = 'https://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';
-                
-                this.initializeElements();
+                this.initElements();
+                this.initWebSocket();
                 this.setupEventListeners();
-                this.checkServerConnection();
             }
             
-            initializeElements() {
+            initElements() {
                 this.chatContainer = document.getElementById('chatContainer');
+                this.statusDot = document.getElementById('statusDot');
+                this.statusText = document.getElementById('statusText');
+                this.sessionIdSpan = document.getElementById('sessionId');
+                this.errorAlert = document.getElementById('errorAlert');
+                this.successAlert = document.getElementById('successAlert');
+                this.loading = document.getElementById('loading');
+                
                 this.textInput = document.getElementById('textInput');
                 this.sendTextButton = document.getElementById('sendTextButton');
                 this.recordButton = document.getElementById('recordButton');
                 this.recordingStatus = document.getElementById('recordingStatus');
-                this.statusDot = document.getElementById('statusDot');
-                this.statusText = document.getElementById('statusText');
-                this.loading = document.getElementById('loading');
-                this.errorDiv = document.getElementById('errorDiv');
-                this.successDiv = document.getElementById('successDiv');
+                
                 this.tabButtons = document.querySelectorAll('.tab-button');
                 this.tabContents = document.querySelectorAll('.tab-content');
+                
+                this.sessionIdSpan.textContent = this.sessionId;
+            }
+            
+            initWebSocket() {
+                this.updateStatus('connecting', 'Connecting to WebSocket...');
+                
+                try {
+                    this.ws = new WebSocket(this.wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected!');
+                        this.updateStatus('connected', 'Connected to real-time transcription');
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        this.handleWebSocketMessage(event.data);
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.showError('WebSocket connection error');
+                        this.updateStatus('disconnected', 'Connection error');
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        this.updateStatus('disconnected', 'Disconnected');
+                        this.showError('Connection lost. Please refresh the page.');
+                    };
+                    
+                } catch (error) {
+                    console.error('Failed to create WebSocket:', error);
+                    this.showError('Cannot connect to WebSocket server');
+                }
+            }
+            
+            handleWebSocketMessage(data) {
+                try {
+                    const message = JSON.parse(data);
+                    console.log('Received:', message);
+                    
+                    switch(message.type) {
+                        case 'connected':
+                            this.addMessage(message.message, false);
+                            break;
+                            
+                        case 'transcription':
+                            // Show real-time transcription
+                            if (message.is_final) {
+                                // Final transcript - show as user message
+                                this.addMessage(message.text, true);
+                                this.currentTranscript = '';
+                            } else {
+                                // Interim transcript - update live display
+                                this.updateLiveTranscript(message.text);
+                            }
+                            break;
+                            
+                        case 'bot_response':
+                            // Bot reply from LLM
+                            this.addMessage(message.text, false);
+                            break;
+                            
+                        case 'interview_complete':
+                            this.showSuccess(`Interview completed! Case ID: ${message.case_id}`);
+                            this.disableInputs();
+                            break;
+                            
+                        case 'error':
+                            this.showError(message.message);
+                            break;
+                    }
+                    
+                } catch (error) {
+                    console.error('Error parsing message:', error);
+                }
             }
             
             setupEventListeners() {
@@ -450,20 +524,6 @@
                 
                 document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
                 document.getElementById(`${tabName}Tab`).classList.add('active');
-            }
-            
-            async checkServerConnection() {
-                try {
-                    const response = await fetch(`${this.apiUrl}/status`);
-                    if (response.ok) {
-                        this.updateStatus('connected', 'Connected to server');
-                    } else {
-                        this.updateStatus('disconnected', 'Server connection issue');
-                    }
-                } catch (error) {
-                    this.updateStatus('disconnected', 'Unable to connect to server');
-                    this.showError('Cannot connect to server. Please check your connection.');
-                }
             }
             
             async sendTextMessage() {
@@ -515,28 +575,64 @@
             }
             
             async startRecording() {
+                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                    this.showError('WebSocket not connected. Please refresh the page.');
+                    return;
+                }
+                
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    // Tell WebSocket server to start transcription
+                    this.ws.send(JSON.stringify({
+                        type: 'start_recording'
+                    }));
                     
-                    this.mediaRecorder = new MediaRecorder(stream);
-                    this.audioChunks = [];
+                    // Get microphone access
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            sampleRate: 16000
+                        } 
+                    });
                     
-                    this.mediaRecorder.ondataavailable = (event) => {
-                        this.audioChunks.push(event.data);
+                    // Set up audio context for processing
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        sampleRate: 16000
+                    });
+                    
+                    const source = this.audioContext.createMediaStreamSource(stream);
+                    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    this.processor.onaudioprocess = (e) => {
+                        if (this.isRecording && this.ws.readyState === WebSocket.OPEN) {
+                            const audioData = e.inputBuffer.getChannelData(0);
+                            
+                            // Convert Float32Array to Int16Array
+                            const int16Data = new Int16Array(audioData.length);
+                            for (let i = 0; i < audioData.length; i++) {
+                                int16Data[i] = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
+                            }
+                            
+                            // Convert to base64 and send
+                            const base64Audio = this.arrayBufferToBase64(int16Data.buffer);
+                            this.ws.send(JSON.stringify({
+                                type: 'audio_data',
+                                audio: base64Audio
+                            }));
+                        }
                     };
                     
-                    this.mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
-                        await this.uploadAudio(audioBlob);
-                        stream.getTracks().forEach(track => track.stop());
-                    };
+                    source.connect(this.processor);
+                    this.processor.connect(this.audioContext.destination);
                     
-                    this.mediaRecorder.start();
+                    this.stream = stream;
                     this.isRecording = true;
                     this.recordButton.classList.add('recording');
                     this.recordButton.textContent = '⏹️';
-                    this.recordingStatus.textContent = 'Recording... Click to stop';
+                    this.recordingStatus.textContent = 'Recording... Speaking will be transcribed in real-time';
                     this.recordingStatus.classList.add('active');
+                    
+                    console.log('Recording started');
                     
                 } catch (error) {
                     console.error('Microphone error:', error);
@@ -545,60 +641,71 @@
             }
             
             stopRecording() {
-                if (this.mediaRecorder && this.isRecording) {
-                    this.mediaRecorder.stop();
-                    this.isRecording = false;
-                    this.recordButton.classList.remove('recording');
-                    this.recordButton.textContent = '🎤';
-                    this.recordingStatus.textContent = 'Processing...';
-                    this.recordingStatus.classList.remove('active');
+                console.log('Stopping recording');
+                
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'stop_recording'
+                    }));
                 }
+                
+                if (this.processor) {
+                    this.processor.disconnect();
+                    this.processor = null;
+                }
+                
+                if (this.audioContext) {
+                    this.audioContext.close();
+                    this.audioContext = null;
+                }
+                
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                
+                this.isRecording = false;
+                this.recordButton.classList.remove('recording');
+                this.recordButton.textContent = '🎤';
+                this.recordingStatus.textContent = 'Click microphone to start real-time transcription';
+                this.recordingStatus.classList.remove('active');
             }
             
-            async uploadAudio(audioBlob) {
-                this.setLoading(true, 'Transcribing audio...');
-                
-                try {
-                    const formData = new FormData();
-                    formData.append('audio', audioBlob, 'recording.wav');
-                    formData.append('session_id', this.sessionId);
-                    
-                    const response = await fetch(`${this.apiUrl}/upload-audio`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`Upload failed: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    if (data.transcription) {
-                        this.addMessage(`[Audio] ${data.transcription}`, true);
-                    }
-                    
-                    if (data.reply) {
-                        this.addMessage(data.reply, false);
-                    }
-                    
-                    if (data.case_id) {
-                        this.showSuccess(`Interview completed! Case ID: ${data.case_id}`);
-                        this.disableInputs();
-                    }
-                    
-                    this.recordingStatus.textContent = 'Click microphone to start recording';
-                    
-                } catch (error) {
-                    console.error('Audio upload error:', error);
-                    this.showError('Failed to process audio. Please try again.');
-                    this.recordingStatus.textContent = 'Click microphone to start recording';
-                } finally {
-                    this.setLoading(false);
+            arrayBufferToBase64(buffer) {
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
                 }
+                return btoa(binary);
+            }
+            
+            updateLiveTranscript(text) {
+                // Find or create live transcript element
+                let liveElement = document.getElementById('liveTranscript');
+                if (!liveElement) {
+                    liveElement = document.createElement('div');
+                    liveElement.id = 'liveTranscript';
+                    liveElement.className = 'message transcript-message';
+                    liveElement.innerHTML = `
+                        <div class="message-avatar">🎤</div>
+                        <div class="message-content">${text}</div>
+                    `;
+                    this.chatContainer.appendChild(liveElement);
+                } else {
+                    liveElement.querySelector('.message-content').textContent = text;
+                }
+                this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
             }
             
             addMessage(message, isUser) {
+                // Remove live transcript if exists
+                const liveElement = document.getElementById('liveTranscript');
+                if (liveElement) {
+                    liveElement.remove();
+                }
+                
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
                 
@@ -624,7 +731,6 @@
                 }
                 this.sendTextButton.disabled = show;
                 this.textInput.disabled = show;
-                this.recordButton.disabled = show;
             }
             
             updateStatus(status, text) {
@@ -633,18 +739,18 @@
             }
             
             showError(message) {
-                this.errorDiv.textContent = message;
-                this.errorDiv.style.display = 'block';
-                this.successDiv.style.display = 'none';
+                this.errorAlert.textContent = message;
+                this.errorAlert.style.display = 'block';
+                this.successAlert.style.display = 'none';
                 setTimeout(() => {
-                    this.errorDiv.style.display = 'none';
+                    this.errorAlert.style.display = 'none';
                 }, 5000);
             }
             
             showSuccess(message) {
-                this.successDiv.textContent = message;
-                this.successDiv.style.display = 'block';
-                this.errorDiv.style.display = 'none';
+                this.successAlert.textContent = message;
+                this.successAlert.style.display = 'block';
+                this.errorAlert.style.display = 'none';
             }
             
             disableInputs() {
@@ -652,6 +758,9 @@
                 this.textInput.disabled = true;
                 this.recordButton.disabled = true;
                 this.textInput.placeholder = "Interview completed - thank you";
+                if (this.isRecording) {
+                    this.stopRecording();
+                }
             }
         }
         
