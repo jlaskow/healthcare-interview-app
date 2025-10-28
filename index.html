@@ -120,13 +120,6 @@
             color: #333;
         }
         
-        .transcript-message .message-content {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-            font-style: italic;
-        }
-        
         .message-avatar {
             width: 40px;
             height: 40px;
@@ -146,10 +139,6 @@
         
         .bot-message .message-avatar {
             background: #6c757d;
-        }
-        
-        .transcript-message .message-avatar {
-            background: #ffc107;
         }
         
         .input-section {
@@ -177,6 +166,13 @@
             background: #007bff;
             color: white;
             border-color: #007bff;
+        }
+        
+        .tab-button:disabled {
+            background: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
         
         .tab-content {
@@ -234,57 +230,40 @@
             transform: none;
         }
         
-        .audio-recording-container {
+        .audio-input-container {
             text-align: center;
         }
         
         .record-button {
-            width: 120px;
-            height: 120px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            font-size: 48px;
+            border: 4px solid #dc3545;
+            background: white;
+            font-size: 36px;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
-            margin: 20px auto;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         
         .record-button:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(220,53,69,0.3);
         }
         
         .record-button:disabled {
-            background: #6c757d;
+            border-color: #ccc;
             cursor: not-allowed;
-            transform: none;
-        }
-        
-        .record-button.recording {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-            animation: recordPulse 1.5s infinite;
-        }
-        
-        @keyframes recordPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            opacity: 0.5;
         }
         
         .recording-status {
-            font-size: 14px;
             color: #6c757d;
-            margin-top: 10px;
-        }
-        
-        .recording-status.active {
-            color: #dc3545;
-            font-weight: 600;
+            font-size: 14px;
+            min-height: 20px;
         }
         
         .alert {
@@ -304,6 +283,12 @@
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
         }
         
         .loading {
@@ -332,7 +317,7 @@
     <div class="container">
         <div class="header">
             <h1>🏥 Healthcare Interview System</h1>
-            <p>Voice & Text Interview</p>
+            <p>Confidential Reporting Assistant</p>
         </div>
         
         <div class="main-content">
@@ -342,18 +327,18 @@
                     <span id="statusText">Connecting...</span>
                 </div>
                 <div>
-                    <span style="font-size: 12px; color: #6c757d;">Session: <span id="sessionId"></span></span>
+                    <small>Session: <span id="sessionId"></span></small>
                 </div>
             </div>
             
             <div class="alert alert-error" id="errorAlert"></div>
             <div class="alert alert-success" id="successAlert"></div>
+            <div class="alert alert-warning" id="audioWarning" style="display: block;">
+                ⚠️ Audio recording is temporarily unavailable. Please use text input.
+            </div>
             
             <div class="chat-container" id="chatContainer">
-                <div class="message bot-message">
-                    <div class="message-avatar">AI</div>
-                    <div class="message-content">Welcome! Connecting to the interview system...</div>
-                </div>
+                <!-- Messages will appear here -->
             </div>
             
             <div class="loading" id="loading">
@@ -363,21 +348,25 @@
             
             <div class="input-section">
                 <div class="input-tabs">
-                    <button class="tab-button active" data-tab="text">💬 Text</button>
-                    <button class="tab-button" data-tab="audio">🎤 Voice (Real-Time)</button>
+                    <button class="tab-button active" data-tab="text">💬 Text Input</button>
+                    <button class="tab-button" data-tab="audio" disabled title="Audio temporarily unavailable">🎤 Audio Input</button>
                 </div>
                 
-                <div id="textTab" class="tab-content active">
+                <div class="tab-content active" id="textTab">
                     <div class="text-input-container">
-                        <textarea id="textInput" placeholder="Type your message..."></textarea>
+                        <textarea 
+                            id="textInput" 
+                            placeholder="Type your message here..."
+                            rows="2"
+                        ></textarea>
                         <button class="send-button" id="sendTextButton">Send</button>
                     </div>
                 </div>
                 
-                <div id="audioTab" class="tab-content">
-                    <div class="audio-recording-container">
-                        <button class="record-button" id="recordButton">🎤</button>
-                        <div class="recording-status" id="recordingStatus">Click microphone to start real-time transcription</div>
+                <div class="tab-content" id="audioTab">
+                    <div class="audio-input-container">
+                        <button class="record-button" id="recordButton" disabled title="Audio temporarily unavailable">🎤</button>
+                        <div class="recording-status" id="recordingStatus">Audio recording temporarily unavailable</div>
                     </div>
                 </div>
             </div>
@@ -387,21 +376,22 @@
     <script>
         class HealthcareInterviewApp {
             constructor() {
-                // CHANGE THESE TO YOUR SERVER IPs
-                // this.wsUrl = 'wss://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';  // WebSocket (if you have it configured)
-                this.apiUrl = 'https://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';  // Flask API with HTTPS!
+                // HTTPS API Gateway endpoint - secure connection
+                this.apiUrl = 'https://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';
                 
-                this.sessionId = 'ws_' + Date.now();
-                this.ws = null;
-                this.isRecording = false;
-                this.mediaRecorder = null;
-                this.audioContext = null;
-                this.processor = null;
-                this.currentTranscript = '';
+                // WebSocket disabled for now (audio feature)
+                this.wsUrl = null;
+                
+                this.sessionId = 'session_' + Date.now();
                 
                 this.initElements();
-                this.initWebSocket();
                 this.setupEventListeners();
+                
+                // Set connected status immediately since we're using REST API
+                this.updateStatus('connected', 'Connected (Text Mode)');
+                
+                // Send initial greeting
+                this.sendTextMessage('');
             }
             
             initElements() {
@@ -411,6 +401,7 @@
                 this.sessionIdSpan = document.getElementById('sessionId');
                 this.errorAlert = document.getElementById('errorAlert');
                 this.successAlert = document.getElementById('successAlert');
+                this.audioWarning = document.getElementById('audioWarning');
                 this.loading = document.getElementById('loading');
                 
                 this.textInput = document.getElementById('textInput');
@@ -424,85 +415,12 @@
                 this.sessionIdSpan.textContent = this.sessionId;
             }
             
-            initWebSocket() {
-                this.updateStatus('connecting', 'Connecting to WebSocket...');
-                
-                try {
-                    this.ws = new WebSocket(this.wsUrl);
-                    
-                    this.ws.onopen = () => {
-                        console.log('WebSocket connected!');
-                        this.updateStatus('connected', 'Connected to real-time transcription');
-                    };
-                    
-                    this.ws.onmessage = (event) => {
-                        this.handleWebSocketMessage(event.data);
-                    };
-                    
-                    this.ws.onerror = (error) => {
-                        console.error('WebSocket error:', error);
-                        this.showError('WebSocket connection error');
-                        this.updateStatus('disconnected', 'Connection error');
-                    };
-                    
-                    this.ws.onclose = () => {
-                        console.log('WebSocket disconnected');
-                        this.updateStatus('disconnected', 'Disconnected');
-                        this.showError('Connection lost. Please refresh the page.');
-                    };
-                    
-                } catch (error) {
-                    console.error('Failed to create WebSocket:', error);
-                    this.showError('Cannot connect to WebSocket server');
-                }
-            }
-            
-            handleWebSocketMessage(data) {
-                try {
-                    const message = JSON.parse(data);
-                    console.log('Received:', message);
-                    
-                    switch(message.type) {
-                        case 'connected':
-                            this.addMessage(message.message, false);
-                            break;
-                            
-                        case 'transcription':
-                            // Show real-time transcription
-                            if (message.is_final) {
-                                // Final transcript - show as user message
-                                this.addMessage(message.text, true);
-                                this.currentTranscript = '';
-                            } else {
-                                // Interim transcript - update live display
-                                this.updateLiveTranscript(message.text);
-                            }
-                            break;
-                            
-                        case 'bot_response':
-                            // Bot reply from LLM
-                            this.addMessage(message.text, false);
-                            break;
-                            
-                        case 'interview_complete':
-                            this.showSuccess(`Interview completed! Case ID: ${message.case_id}`);
-                            this.disableInputs();
-                            break;
-                            
-                        case 'error':
-                            this.showError(message.message);
-                            break;
-                    }
-                    
-                } catch (error) {
-                    console.error('Error parsing message:', error);
-                }
-            }
-            
             setupEventListeners() {
-                // Tab switching
+                // Tab switching (only for text tab since audio is disabled)
                 this.tabButtons.forEach(button => {
-                    button.addEventListener('click', () => this.switchTab(button.dataset.tab));
+                    if (!button.disabled) {
+                        button.addEventListener('click', () => this.switchTab(button.dataset.tab));
+                    }
                 });
                 
                 // Text input
@@ -513,26 +431,38 @@
                         this.sendTextMessage();
                     }
                 });
-                
-                // Audio recording
-                this.recordButton.addEventListener('click', () => this.toggleRecording());
             }
             
             switchTab(tabName) {
-                this.tabButtons.forEach(btn => btn.classList.remove('active'));
-                this.tabContents.forEach(content => content.classList.remove('active'));
+                this.tabButtons.forEach(btn => {
+                    if (btn.dataset.tab === tabName) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
                 
-                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-                document.getElementById(`${tabName}Tab`).classList.add('active');
+                this.tabContents.forEach(content => {
+                    if (content.id === tabName + 'Tab') {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
             }
             
-            async sendTextMessage() {
-                const message = this.textInput.value.trim();
-                if (!message) return;
+            async sendTextMessage(customMessage = null) {
+                const message = customMessage !== null ? customMessage : this.textInput.value.trim();
                 
-                this.addMessage(message, true);
-                this.textInput.value = '';
-                this.setLoading(true, 'Processing...');
+                // If it's the initial greeting, don't show as user message
+                if (customMessage === null && !message) return;
+                
+                if (customMessage === null) {
+                    this.addMessage(message, true);
+                    this.textInput.value = '';
+                }
+                
+                this.setLoading(true);
                 
                 try {
                     const response = await fetch(`${this.apiUrl}/chat`, {
@@ -560,152 +490,13 @@
                     
                 } catch (error) {
                     console.error('Error:', error);
-                    this.showError('Failed to send message. Please try again.');
+                    this.showError('Failed to send message. Please check your connection and try again.');
                 } finally {
                     this.setLoading(false);
                 }
             }
             
-            async toggleRecording() {
-                if (this.isRecording) {
-                    this.stopRecording();
-                } else {
-                    await this.startRecording();
-                }
-            }
-            
-            async startRecording() {
-                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-                    this.showError('WebSocket not connected. Please refresh the page.');
-                    return;
-                }
-                
-                try {
-                    // Tell WebSocket server to start transcription
-                    this.ws.send(JSON.stringify({
-                        type: 'start_recording'
-                    }));
-                    
-                    // Get microphone access
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        audio: {
-                            echoCancellation: true,
-                            noiseSuppression: true,
-                            sampleRate: 16000
-                        } 
-                    });
-                    
-                    // Set up audio context for processing
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                        sampleRate: 16000
-                    });
-                    
-                    const source = this.audioContext.createMediaStreamSource(stream);
-                    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-                    
-                    this.processor.onaudioprocess = (e) => {
-                        if (this.isRecording && this.ws.readyState === WebSocket.OPEN) {
-                            const audioData = e.inputBuffer.getChannelData(0);
-                            
-                            // Convert Float32Array to Int16Array
-                            const int16Data = new Int16Array(audioData.length);
-                            for (let i = 0; i < audioData.length; i++) {
-                                int16Data[i] = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
-                            }
-                            
-                            // Convert to base64 and send
-                            const base64Audio = this.arrayBufferToBase64(int16Data.buffer);
-                            this.ws.send(JSON.stringify({
-                                type: 'audio_data',
-                                audio: base64Audio
-                            }));
-                        }
-                    };
-                    
-                    source.connect(this.processor);
-                    this.processor.connect(this.audioContext.destination);
-                    
-                    this.stream = stream;
-                    this.isRecording = true;
-                    this.recordButton.classList.add('recording');
-                    this.recordButton.textContent = '⏹️';
-                    this.recordingStatus.textContent = 'Recording... Speaking will be transcribed in real-time';
-                    this.recordingStatus.classList.add('active');
-                    
-                    console.log('Recording started');
-                    
-                } catch (error) {
-                    console.error('Microphone error:', error);
-                    this.showError('Unable to access microphone. Please check permissions.');
-                }
-            }
-            
-            stopRecording() {
-                console.log('Stopping recording');
-                
-                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                    this.ws.send(JSON.stringify({
-                        type: 'stop_recording'
-                    }));
-                }
-                
-                if (this.processor) {
-                    this.processor.disconnect();
-                    this.processor = null;
-                }
-                
-                if (this.audioContext) {
-                    this.audioContext.close();
-                    this.audioContext = null;
-                }
-                
-                if (this.stream) {
-                    this.stream.getTracks().forEach(track => track.stop());
-                    this.stream = null;
-                }
-                
-                this.isRecording = false;
-                this.recordButton.classList.remove('recording');
-                this.recordButton.textContent = '🎤';
-                this.recordingStatus.textContent = 'Click microphone to start real-time transcription';
-                this.recordingStatus.classList.remove('active');
-            }
-            
-            arrayBufferToBase64(buffer) {
-                let binary = '';
-                const bytes = new Uint8Array(buffer);
-                const len = bytes.byteLength;
-                for (let i = 0; i < len; i++) {
-                    binary += String.fromCharCode(bytes[i]);
-                }
-                return btoa(binary);
-            }
-            
-            updateLiveTranscript(text) {
-                // Find or create live transcript element
-                let liveElement = document.getElementById('liveTranscript');
-                if (!liveElement) {
-                    liveElement = document.createElement('div');
-                    liveElement.id = 'liveTranscript';
-                    liveElement.className = 'message transcript-message';
-                    liveElement.innerHTML = `
-                        <div class="message-avatar">🎤</div>
-                        <div class="message-content">${text}</div>
-                    `;
-                    this.chatContainer.appendChild(liveElement);
-                } else {
-                    liveElement.querySelector('.message-content').textContent = text;
-                }
-                this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-            }
-            
             addMessage(message, isUser) {
-                // Remove live transcript if exists
-                const liveElement = document.getElementById('liveTranscript');
-                if (liveElement) {
-                    liveElement.remove();
-                }
-                
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
                 
@@ -756,11 +547,7 @@
             disableInputs() {
                 this.sendTextButton.disabled = true;
                 this.textInput.disabled = true;
-                this.recordButton.disabled = true;
                 this.textInput.placeholder = "Interview completed - thank you";
-                if (this.isRecording) {
-                    this.stopRecording();
-                }
             }
         }
         
