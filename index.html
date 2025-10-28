@@ -388,8 +388,8 @@
         class HealthcareInterviewApp {
             constructor() {
                 // CHANGE THESE TO YOUR SERVER IPs
-                this.wsUrl = 'wss://3.13.118.153:8766';  // WebSocket server
-                this.apiUrl = 'http://3.13.118.153:5000';  // Flask API for text messages
+                this.wsUrl = 'wss://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';  // WebSocket (if you have it configured)
+                this.apiUrl = 'https://h18p10df55.execute-api.us-east-2.amazonaws.com/prod';  // Flask API with HTTPS!
                 
                 this.sessionId = 'ws_' + Date.now();
                 this.ws = null;
